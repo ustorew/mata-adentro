@@ -1,0 +1,15 @@
+# Render (render.com): cria o servidor do jogo a partir deste repositório.
+# O banco de dados fica no Neon (neon.tech): cole a "connection string" dele em DATABASE_URL.
+services:
+  - type: web
+    name: mata-adentro
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node server/index.js
+    healthCheckPath: /api/saude
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
