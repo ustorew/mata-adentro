@@ -549,15 +549,37 @@ async function combateAnim(P){
 function banner(txt,ms){return fxBanner(txt,'turno',{ms});}
 const ART_RIVAL={pipoca:'do',tonico:'do',ameixa:'da',lodoso:'do',lanuda:'da',trovoada:'da',zeca:'do',cocada:'da',sanfona:'do'};
 function vezDoRival(){const R=RIVAIS[B.rival];return 'Vez '+(ART_RIVAL[B.rival]||'de')+' '+R.curto;}
+/* v11: o rival joga a carta de um jeito que dá para ver: um verso sai do painel dele, voa até o meio do campo do lado
+   dele virando de frente, fica um instante maior com o brilho da raridade e "Fulano jogou", e só então voa para o lugar
+   (a volta para o lugar é o fxVooCarta de sempre, que parte de onde a carta ficou). */
 async function mostrarCartaRival(inst){
-  const d=document.createElement('div');d.style.position='absolute';
-  const hr=$('#hR').getBoundingClientRect();
-  d.style.left=(hr.left+hr.width/2-LARG_MAO[BU.bm||'s']/2)+'px';d.style.top=(hr.bottom+4)+'px';d.style.zIndex=5;d.className='rvmostra bm-'+(BU.bm||'s');d.innerHTML='<div class="hand" style="height:auto;margin:0"></div>';
-  d.firstChild.innerHTML=cardHTML(inst.id,{sz:'hand',lvl:inst.lvl});$('#fx').appendChild(d);hydrate(d);
+  // espera a faixa "Vez do rival" sair (senão a carta aparece por cima dela)
+  for(let k=0;k<20&&!RM&&document.querySelector('.fxban.fb-rival');k++)await sleep(80);
+  if(!B)return null;
+  const fx=$('#fx'),hR=$('#hR'),cp=$('#bCampo'),lr=$('#lR');if(!fx||!hR)return null;
+  const R=(typeof RIVAIS!=='undefined'&&RIVAIS[B.rival])||{},quem=R.curto||R.nome||'Rival';
+  const larg=LARG_MAO[BU.bm||'s']||76,esc=Math.min(1.7,Math.max(1.15,118/larg));
+  const d=document.createElement('div');d.className='rvjoga bm-'+(BU.bm||'s');
+  d.innerHTML=`<div class="rvgiro"><div class="rvfrente hand" style="height:auto;margin:0">${cardHTML(inst.id,{sz:'hand',lvl:inst.lvl})}</div><div class="rvverso" aria-hidden="true"><i></i></div></div><div class="rvnome">${escH(quem)} jogou</div>`;
   d.style.setProperty('--rl',RAR_LUZ[CARD[inst.id].rar]||'#FFFFFF');
-  if(!RM)d.animate([{transform:'translateY(-20px) scale(.4) rotate(-8deg)',opacity:0},{transform:'scale(1.1) rotate(2deg)',opacity:1,offset:0.6},{transform:'none',opacity:1}],{duration:260,easing:'ease-out'});
-  await sleep(vel(560));
-  const r=d.getBoundingClientRect();d.remove();
+  fx.appendChild(d);hydrate(d);
+  const g=$('.rvgiro',d),w=g.offsetWidth||larg,h=g.offsetHeight||Math.round(larg*1.4);
+  // onde a carta para: no meio do campo, logo abaixo da fila do rival (ou abaixo do painel, se não houver campo)
+  const hr=hR.getBoundingClientRect(),c=cp?cp.getBoundingClientRect():hr,l=lr?lr.getBoundingClientRect():null;
+  const cx=c.left+c.width/2,topo=Math.max(hr.bottom+8,(l&&l.height?l.bottom-h*esc*0.35:hr.bottom+8));
+  const cy=Math.min(window.innerHeight-h*esc/2-8,topo+h*esc/2);
+  d.style.left=Math.round(cx-w/2)+'px';d.style.top=Math.round(cy-h/2)+'px';
+  const ox=(hr.left+hr.width/2)-cx,oy=(hr.top+hr.height/2)-cy;
+  if(RM||!g.animate){g.style.transform=`scale(${esc})`;await sleep(vel(700));const r=g.getBoundingClientRect();d.remove();return r;}
+  try{sfx('flip');}catch(e){}
+  const voo=g.animate([{transform:`translate(${ox}px,${oy}px) scale(.3) rotateY(180deg) rotateZ(-14deg)`,opacity:0},{transform:`translate(${ox*0.4}px,${oy*0.4-20}px) scale(${esc*0.75}) rotateY(150deg) rotateZ(-6deg)`,opacity:1,offset:0.35},
+    {transform:`translate(0,-8px) scale(${esc*1.08}) rotateY(20deg)`,offset:0.8},{transform:`scale(${esc}) rotateY(0deg)`}],{duration:vel(520),easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  d.animate([{opacity:0},{opacity:1}],{duration:200,fill:'forwards'});
+  await new Promise(r=>{voo.onfinish=r;setTimeout(r,vel(520)+200);});
+  d.classList.add('mostra');
+  try{const sp=c&&c.width?{x:cx,y:cy}:null;if(sp&&typeof fxAnel==='function')fxAnel(sp.x,sp.y,10,w*esc*0.9,fxHex(RAR_LUZ[CARD[inst.id].rar]||'#FFFFFF',0.8),420,{ry:0.9,w:5,add:true});}catch(e){}
+  await sleep(vel(CARD[inst.id].rar==='lendaria'||CARD[inst.id].rar==='epica'?950:780));
+  const r=g.getBoundingClientRect();d.remove();
   return r;
 }
 

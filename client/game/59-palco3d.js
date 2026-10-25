@@ -35,7 +35,7 @@ function p3dIniciar(bt){
       const r=new T.WebGLRenderer({canvas:cv,antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:false});
       if(!r.getContext())throw new Error('sem contexto');
       r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.18;
-      r.shadowMap.enabled=true;r.shadowMap.type=T.PCFSoftShadowMap;
+      r.shadowMap.enabled=false; // v11: sem mapa de sombras (era a metade do peso); cada personagem tem a sua sombra redonda
       r.debug.checkShaderErrors=false;
       cv.addEventListener('webglcontextlost',e=>{e.preventDefault();p3dFalhar();},false);
       // WebGL por software (sem placa de vídeo): começa na qualidade mais leve
@@ -54,7 +54,7 @@ function p3dIniciar(bt){
     return true;
   }catch(e){P3D.falhou=true;P3D.on=false;try{if(P3D.cv&&P3D.cv.parentNode)P3D.cv.remove();}catch(_){}return false;}
 }
-function p3dPR(){const d=window.devicePixelRatio||1;const cel=p3dCelular();const tetos=cel?[1.5,1.25,1]:[2,1.5,1.25];return Math.min(d,tetos[Math.min(P3D.qual,2)]);}
+function p3dPR(){const d=window.devicePixelRatio||1;const cel=p3dCelular();const tetos=cel?[1.25,1.1,1]:[1.5,1.25,1];return Math.min(d,tetos[Math.min(P3D.qual,2)]);}
 /* ---------- v9: contorno de desenho animado (pós-processo pela profundidade) ----------
    A cena vai para um alvo de render (meia-precisão, MSAA 4x no WebGL2) com textura de profundidade; um triângulo de tela
    cheia copia a cor e escurece onde a profundidade "quebra" (laplaciano de 1/z: zero em superfícies planas, então o chão
@@ -63,7 +63,7 @@ function p3dPR(){const d=window.devicePixelRatio||1;const cel=p3dCelular();const
 function p3dPosIniciar(){
   const T=window.THREE,r=P3D.r;P3D.pos=null;
   try{
-    if(window.__P3DSEMLINHA||!r.capabilities.isWebGL2)return;const gl=r.getContext();
+    if(!window.__P3DLINHA||!r.capabilities.isWebGL2)return; // v11: desligado (pesava no celular e no Mac de tela retina)const gl=r.getContext();
     if(!gl.getExtension('EXT_color_buffer_float')&&!gl.getExtension('EXT_color_buffer_half_float'))return;
     const mat=new T.ShaderMaterial({uniforms:{tC:{value:null},tD:{value:null},px:{value:new T.Vector2(1e-3,1e-3)},cn:{value:1},cf:{value:100},lc:{value:new T.Color('#2A1830')},forca:{value:1},longe:{value:new T.Vector2(30,120)},dois:{value:1}},
       vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}',
@@ -375,7 +375,7 @@ function p3dMontarCena(){
   sc.background=p3dCor(A.ceu[2]);
   sc.fog=new T.Fog(p3dCor(A.nevoa),G.D*A.nd[0]*1.5,G.D*A.nd[1]*1.6);
   // luzes: sol/lua (sombra macia) + hemisfério
-  const sol=new T.DirectionalLight(p3dCor(A.sol[0]),A.sol[1]);sol.position.set(A.sol[2][0],A.sol[2][1],A.sol[2][2]);sol.castShadow=true;
+  const sol=new T.DirectionalLight(p3dCor(A.sol[0]),A.sol[1]);sol.position.set(A.sol[2][0],A.sol[2][1],A.sol[2][2]);
   sol.shadow.mapSize.set(1024,1024);sol.shadow.bias=-0.0006;sol.shadow.normalBias=0.03;sol.shadow.radius=3;
   W.add(sol);W.add(sol.target);P3D.sol=sol;
   const hemi=new T.HemisphereLight(p3dCor(A.hemi[0]),p3dCor(A.hemi[1]),A.hemi[2]);W.add(hemi);P3D.hemi=hemi;P3D.hemiI=A.hemi[2];
@@ -658,8 +658,8 @@ function p3dPlacas(W,A){
   for(const t of L.tiles){const r=p3dRng(991+t.i*31+(t.P==='r'?500:0)+P3D.arena*7),k=t.k,hw=t.w/2*(folha?0.8:1),zb=t.zb+(folha?t.d*0.1:0),d=t.d*(folha?0.8:1);
     const fundo=zb+0.16*k,lado=sd=>t.cx+sd*hw*0.78;
     if(t.terr==='milharal'){
-      const sd=t.i%2?1:-1;p3dPor(P,P3DB.mandacaru(0.95,'#4E8A4A'),lado(sd),0,fundo+0.06,r()*6,k*0.95);
-      p3dPor(P,P3DB.mandacaru(0.6,'#5A964E'),lado(-sd)*0.98+t.cx*0.02,0,fundo,r()*6,k*0.8);
+      const sd=t.i%2?1:-1;p3dPor(P,P3DB.mandacaru(0.95,'#4E8A4A'),lado(sd),0,fundo+0.06,r()*6,k*0.6); // v11: mais baixos
+      p3dPor(P,P3DB.xique(),lado(-sd)*0.98+t.cx*0.02,0,fundo,r()*6,k*0.9);
       p3dPor(P,P3DB.xique(),t.cx+(r()-0.5)*hw*0.4,0,fundo-0.02,r()*6,k);
       for(let j=0;j<3;j++)p3dPor(P,P3DB.pedra(j%2?'#8E4A30':'#6E3A26',0.07+r()*0.05),t.cx+(r()-0.5)*hw*1.5,0,t.cz+(r()-0.2)*d*0.5,r()*6,k);
       for(let j=0;j<5;j++)brasas.push([t.cx+(r()-0.5)*hw*1.4,t.cz+(r()-0.5)*d*0.6]);
@@ -673,7 +673,7 @@ function p3dPlacas(W,A){
       const rx=Math.min(hw*0.78,0.62),rz=Math.min(d*0.22,0.34),z=zb+rz+0.1;pocas.push({x:t.cx,z,rx,rz});
       for(let j=0;j<3;j++){const a=j*2.1+r();p3dPor(P,P3DB.vitoria(0.12+r()*0.06),t.cx+Math.cos(a)*rx*0.55,0.006,z+Math.sin(a)*rz*0.5,r()*6,k);}
       p3dPor(P,P3DB.florAgua(),t.cx+rx*0.2,0.01,z-rz*0.1,0,k);
-      for(const sd of [-1,1])for(let j=0;j<3;j++)p3dPor(V,P3DB.taboa(0.6+r()*0.25),t.cx+sd*(hw*0.84-j*0.06),0,zb+0.1+j*0.15,r()*6,k);
+      for(const sd of [-1,1])for(let j=0;j<3;j++)p3dPor(V,P3DB.taboa(0.4+r()*0.18),t.cx+sd*(hw*0.84-j*0.06),0,zb+0.1+j*0.15,r()*6,k);
     }else if(t.terr==='pasto'){
       const sd=t.i%2?1:-1;p3dPor(P,P3DB.cerca('#4A3A48'),t.cx-sd*hw*0.35,0,fundo,(r()-0.5)*0.4,k*1.1);
       p3dPor(P,P3DB.lampiao(),lado(sd),0,fundo+0.05,sd>0?Math.PI:0,k*1.05);lampioes.push([lado(sd)+(sd>0?-1:1)*0.12*k*1.05,0.48*k*1.05,fundo+0.05,k]);
@@ -755,11 +755,11 @@ const P3DA={
 function p3dLonge(W,A){
   const T=window.THREE,G=P3D.G,L=P3D.L,rnd=p3dRng(55+P3D.arena*101);
   // mar de nuvens por baixo e em volta
-  const nv=[];const nn=G.cel?70:100;
+  const nv=[];const nn=G.cel?45:70;
   for(let k=0;k<nn;k++){const a=rnd()*6.283,d=7+Math.pow(rnd(),0.7)*48;const cx=Math.cos(a)*d*1.1,cz=L.cz+Math.sin(a)*d-6;const y=-7-rnd()*4-d*0.08;
     const n=3+Math.floor(rnd()*3),r0=1.2+rnd()*2.2;for(let j=0;j<n;j++)nv.push({x:cx+(j-n/2)*r0*0.9,y:y+(j%2)*r0*0.25,z:cz+(rnd()-0.5)*r0,s:r0*(0.7+rnd()*0.5),sy:r0*(0.45+rnd()*0.25),c:A.nuvem[Math.floor(rnd()*A.nuvem.length)]});}
   const nm=p3dMat('#FFFFFF',{rough:1,emi:'#FFFFFF',ei:0.1});
-  p3dInst(W,new T.SphereGeometry(1,12,8),nm,nv);
+  p3dInst(W,new T.SphereGeometry(1,9,6),nm,nv);
   // ilhas distantes, com as árvores da região (tudo numa malha só)
   const partes=[];const ilhas=[];const nI=G.cel?7:10;
   for(let k=0;k<nI;k++){const lado=k%2?1:-1;const d=14+k*4.2+rnd()*4;const x=lado*(4+rnd()*d*0.55),z=L.zB-d*0.75-rnd()*4,y=-2.5-rnd()*3.5+(k<2?1:0),r0=1.6+rnd()*1.8;ilhas.push({x,y,z,r:r0});}
@@ -972,6 +972,7 @@ function p3dHerois(W,A){
     let h=1;try{o.updateMatrixWorld(true);const bb=new T.Box3().setFromObject(o);h=Math.max(0.3,bb.max.y-bb.min.y);}catch(e){}
     const alvo=(inst.fb?0.95:1.05)*(P==='r'?1:0.8);o.scale.multiplyScalar(alvo/h);o.traverse(m=>{if(m.isMesh)m.castShadow=false;});
     const z=P==='r'?L.r.zb-0.7:L.p.zf+0.85,x=0;o.position.set(x,P3D_Y0,z);o.rotation.y=P==='r'?0:Math.PI;
+    {const sb=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:p3dTex('brilho'),color:'#000000',transparent:true,opacity:0.4,depthWrite:false,toneMapped:false,fog:false}));sb.rotation.x=-Math.PI/2;sb.position.set(x,P3D_Y0+0.01,z);sb.scale.set(1.1,0.8,1);sb.renderOrder=1;W.add(sb);}
     W.add(o);const H={P,inst,o,hp:B?B.sides[P].hp:0,hitT:-9,off:P==='r'?0.7:0};P3D.herois.push(H);
   }
 }
@@ -991,11 +992,11 @@ function p3dMarcas(W){
     const t=L&&L.tiles.find(q=>q.s===s);
     const r=Math.min(0.95,(t?t.w:s.w)*0.42);const g=new T.Group();g.position.set(s.x,0.02,s.z);
     const mk=(tex,cor,op,add)=>{const m=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:p3dTex(tex),color:cor,transparent:true,opacity:op,depthWrite:false,blending:add?T.AdditiveBlending:T.NormalBlending,toneMapped:false,fog:false}));m.rotation.x=-Math.PI/2;m.renderOrder=2;g.add(m);return m;};
-    const vazio=mk('tracejado','#FFFFFF',0.75);vazio.scale.set(r*2.1,r*1.7,1);
+    const vazio=mk('tracejado','#FFFFFF',0.38);vazio.scale.set(r*2.1,r*1.7,1);
     const sombra=mk('anel','#2A1406',0.5);sombra.scale.set(r*2.75,r*2.25,1);
     const alvo=mk('anel','#FFE070',1);alvo.scale.set(r*2.6,r*2.1,1);
     const alvo2=mk('brilho','#FFC040',0.5,true);alvo2.scale.set(r*3,r*2.4,1);
-    const aura=mk('anel','#7FE0FF',0.9,true);aura.scale.set(r*2.4,r*1.95,1);
+    const aura=mk('anel','#7FE0FF',0.9,false); // v11: sem somar luz (estourava em branco)aura.scale.set(r*2.4,r*1.95,1);
     let mold=null;
     if(t){mold=new T.Mesh(moldura(t),new T.MeshBasicMaterial({color:'#FFE070',transparent:true,opacity:0.9,depthWrite:false,toneMapped:false,fog:false,side:T.DoubleSide}));mold.position.set(t.cx-s.x,0.0,t.cz-s.z);mold.renderOrder=3;g.add(mold);}
     W.add(g);s.m={g,vazio,sombra,alvo,alvo2,aura,mold,r};
@@ -1011,14 +1012,14 @@ function p3dMarcasQuadro(t){
       if(mold){mold.material.color.set(c);mold.material.opacity=0.75+w*0.22;}}
     const ac=ln.classList.contains('com-aura')?ln.style.getPropertyValue('--ac'):'';
     aura.visible=!!ac&&cheio;
-    if(aura.visible){if(aura.userData.c!==ac){aura.userData.c=ac;try{aura.material.color.set(ac.trim());}catch(e){}}const k=RM?1:1+Math.sin(t*3.2)*0.06;aura.scale.set(r*2.4*k,r*1.95*k,1);aura.material.opacity=ln.classList.contains('fam2')?1:0.7;}
+    if(aura.visible){if(aura.userData.c!==ac){aura.userData.c=ac;try{aura.material.color.set(ac.trim());}catch(e){}}const k=RM?1:1+Math.sin(t*3.2)*0.06;aura.scale.set(r*2.4*k,r*1.95*k,1);aura.material.opacity=ln.classList.contains('fam2')?0.85:0.6;}
   }
 }
 
 /* ---------- partículas 3D (sólidas e de luz) ---------- */
 function p3dParticulas(W){
-  const T=window.THREE,N=220;
-  const mk=(mat)=>{const im=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),mat,N);im.frustumCulled=false;im.instanceMatrix.setUsage(T.DynamicDrawUsage);const z=new T.Matrix4().makeScale(0,0,0);for(let i=0;i<N;i++){im.setMatrixAt(i,z);im.setColorAt(i,new T.Color(1,1,1));}W.add(im);return im;};
+  const T=window.THREE,N=160;
+  const mk=(mat)=>{const im=new T.InstancedMesh(new T.IcosahedronGeometry(1,0),mat,N);im.frustumCulled=false;im.instanceMatrix.setUsage(T.DynamicDrawUsage);const z=new T.Matrix4().makeScale(0,0,0);for(let i=0;i<N;i++){im.setMatrixAt(i,z);im.setColorAt(i,new T.Color(1,1,1));}W.add(im);return im;};
   P3D.partS=mk(new T.MeshStandardMaterial({roughness:0.6}));
   P3D.partG=mk(new T.MeshBasicMaterial({transparent:true,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false}));
   P3D.parts=[];P3D.pi={s:0,g:0};P3D.pm=new T.Matrix4();P3D.pc=new T.Color();P3D.pq=new T.Quaternion();P3D.pe=new T.Euler();P3D.pv=new T.Vector3();P3D.ps=new T.Vector3();
@@ -1158,15 +1159,19 @@ function p3dNovaUnidade(key,id,P,lane,isB){
   // anel da raridade no chão (sobe junto com quem corre)
   const c=(typeof CARD!=='undefined'&&CARD[id])||null,rar=c?c.rar:'comum';
   let anel=null;
-  if(!isB&&rar!=='comum'){anel=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:p3dTex(rar==='lendaria'?'brilho':'anel'),color:P3D_RAR[rar],transparent:true,opacity:rar==='incomum'?0.55:rar==='rara'?0.75:0.9,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false}));
+  if(!isB&&rar!=='comum'){anel=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:p3dTex(rar==='lendaria'?'brilho':'anel'),color:P3D_RAR[rar],transparent:true,opacity:rar==='incomum'?0.35:rar==='rara'?0.45:0.55,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false}));
     anel.rotation.x=-Math.PI/2;anel.position.y=0.03;const r=rar==='lendaria'?1.25:0.95;anel.scale.set(r,r*0.82,1);anel.renderOrder=2;holder.add(anel);
     if(rar==='lendaria'){const a2=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:p3dTex('runa'),color:'#FFE58A',transparent:true,opacity:0.6,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false}));a2.rotation.x=-Math.PI/2;a2.position.y=0.035;a2.scale.set(1.15,1.15,1);a2.renderOrder=2;holder.add(a2);anel.userData.runa=a2;}}
+  // v11: sombra redonda no chão (no lugar do mapa de sombras)
+  const sombra=new T.Mesh(new T.PlaneGeometry(1,1),P3D.matSombra||(P3D.matSombra=new T.MeshBasicMaterial({map:p3dTex('brilho'),color:'#000000',transparent:true,opacity:0.42,depthWrite:false,toneMapped:false,fog:false})));
+  sombra.rotation.x=-Math.PI/2;sombra.renderOrder=1;const sw=Math.max(0.7,Math.min(1.5,(inst.wid||1)*0.95));sombra.scale.set(sw,sw*0.7,1);holder.add(sombra);
   P3D.scene.add(holder);
-  const U={key,id,P,lane,isB,holder,rollG,yawG,inst,anel,rar,mats:p3dMats(inst.obj),yaw:null,home:new T.Vector3(),cur:new T.Vector3(),prev:null,op:1,fl:0,flc:'',dissolvido:false,ok:true,vy:0};
+  const U={key,id,P,lane,isB,holder,rollG,yawG,inst,anel,rar,sombra,mats:p3dMats(inst.obj),yaw:null,home:new T.Vector3(),cur:new T.Vector3(),prev:null,op:1,fl:0,flc:'',dissolvido:false,ok:true,vy:0};
   return U;
 }
 function p3dTirarUnidade(U,ja){
   if(!U)return;if(U.holder.parent)U.holder.parent.remove(U.holder);
+  if(U.sombra){U.holder.remove(U.sombra);U.sombra.geometry.dispose();}
   try{p3dDescartar(U.holder);}catch(e){}
 }
 /* derrete em pedacinhos coloridos que sobem (a morte) */
@@ -1231,6 +1236,8 @@ function p3dUnidadesQuadro(now,dt){
     const H=U.holder;
     H.position.set(U.cur.x,U.cur.y+lift/ppuC,U.cur.z);
     H.scale.set(esc*sx,esc*sy,esc*sx);
+    if(U.sombra){const hy=lift/ppuC,ks=Math.max(0.35,1-hy*0.5),sw=Math.max(0.7,Math.min(1.5,(U.inst.wid||1)*0.95))*ks; // fica no chão quando pula
+      U.sombra.position.y=(-hy+0.012)/Math.max(1e-3,esc*sy);U.sombra.scale.set(sw,sw*0.7,1);}
     U.rollG.rotation.z=-rot;
     // de frente: para onde anda; parado em casa, de frente para a câmera (virado um tiquinho para o meio)
     const dHome=U.cur.distanceTo(U.home);U.dHome=dHome;
@@ -1242,20 +1249,24 @@ function p3dUnidadesQuadro(now,dt){
     let op=(parseFloat(csE.opacity)||0)*(parseFloat(csF.opacity));if(!isFinite(op))op=1;
     const fil=csC.filter||'';const mb=P3D_BRI.exec(fil);let fl=mb?Math.max(0,parseFloat(mb[1])-1):0;const ds=P3D_DS.exec(fil);
     p3dOpacidade(U,op);p3dBrilho(U,Math.min(1.2,fl),ds&&mb?ds[1]:'');
+    if((st!=='idle'&&st!=='sono')||dHome>0.03||op<0.99||fl>0)p3dAcao(400);
     // morte: o canvas some no meio da queda → vira pedacinhos
     if(it.el.dataset.morto==='1'&&it.cv.style.visibility==='hidden')p3dDissolver(U);
     if(!U.dissolvido)H.visible=op>0.02;
     // pose do personagem
     if(U.inst.anim&&U.ok){try{U.inst.anim(st,RM?0:tt+(E?E.off:0),p);}catch(e){U.ok=false;}}
     if(U.inst.asc&&!RM){try{U.inst.asc.tick(tt+(E?E.off:0));}catch(e){U.inst.asc=null;}}
-    if(U.anel){U.anel.visible=!U.dissolvido&&op>0.3;U.anel.material.opacity=(U.rar==='lendaria'?0.75+(RM?0:Math.sin(tt*2.4)*0.2):U.rar==='incomum'?0.5:U.rar==='rara'?0.7:0.85)*Math.min(1,op);
+    if(U.anel){U.anel.visible=!U.dissolvido&&op>0.3;U.anel.material.opacity=(U.rar==='lendaria'?0.55+(RM?0:Math.sin(tt*2.4)*0.15):U.rar==='incomum'?0.3:U.rar==='rara'?0.42:0.52)*Math.min(1,op);
       if(U.anel.userData.runa){U.anel.userData.runa.rotation.z=RM?0:tt*0.6;U.anel.userData.runa.visible=U.anel.visible;}}
   }
   // quem está em casa olha para quem chegou para brigar
   for(const U of P3D.units.values()){if(!vistos.has(U.key))continue;
     let alvo=U.yawT;
     if(alvo==null){if(atacante&&atacante!==U&&atacante.P!==U.P&&U.dHome<0.2&&atacante.cur.distanceTo(U.cur)<2.2)alvo=Math.atan2(atacante.cur.x-U.cur.x,atacante.cur.z-U.cur.z);
-      else alvo=U.P==='r'?Math.max(-0.35,Math.min(0.35,-U.home.x*0.07)):Math.max(-0.45,Math.min(0.45,-U.home.x*0.1));}
+      // v11: as suas olham para o lado do rival (de costas para a câmera, em 3/4 para o meio, para ver o rosto de perfil);
+      // as do rival olham para você
+      else if(U.P==='r')alvo=Math.max(-0.35,Math.min(0.35,-U.home.x*0.07));
+      else{const sg=U.home.x>0.05?-1:U.home.x<-0.05?1:(U.lane<2?1:-1);alvo=Math.PI-Math.max(-0.65,Math.min(0.65,sg*0.4-U.home.x*0.08));}}
     if(U.yaw==null||RM)U.yaw=alvo;else{let d=alvo-U.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));U.yaw+=d*Math.min(1,dt*10);}
     U.yawG.rotation.y=U.yaw;}
   // quem saiu do DOM: some (os que já se desfizeram esperam as partículas)
@@ -1278,11 +1289,21 @@ function p3dLoop(now){
   if(!P3D.on||document.hidden)return;
   const bt=document.getElementById('battle');if(!bt||bt.hidden||!P3D.scene){return;}
   P3D.raf=requestAnimationFrame(p3dLoop);
-  // celular lento: segura em ~30 qps
-  if(P3D.qual>=2&&now-P3D.last<30)return;
+  // v11: ritmo. Celular: 30 quadros por segundo sempre (esquentava). Computador: 60 com ação, 30 parado.
+  // Telas de 120 Hz (Mac, iPhone Pro) não passam de 60.
+  const iv=p3dIntervalo(now);
+  if(P3D.last&&now-P3D.last<iv-3)return;
   const dt=P3D.last?Math.min(0.1,(now-P3D.last)/1000):0.016;P3D.last=now;
+  const t0=performance.now();
   try{p3dQuadro(now,dt,bt);}catch(e){P3D.erros=(P3D.erros||0)+1;if(P3D.erros>5)p3dFalhar();}
+  P3D.custo=(P3D.custo||0)*0.9+(performance.now()-t0)*0.1;
 }
+function p3dIntervalo(now){
+  if(P3D.G&&P3D.G.cel||P3D.soft||P3D.qual>=2)return 1000/30;
+  const acao=P3D.parts.length||P3D.fx.length||(typeof BU!=='undefined'&&BU.busy)||now<(P3D.acaoAte||0);
+  return acao?1000/60:1000/30;
+}
+function p3dAcao(ms){P3D.acaoAte=Math.max(P3D.acaoAte||0,performance.now()+(ms||600));}
 function p3dQuadro(now,dt,bt){
   // geometria (tela girou, painel cresceu)
   if(!P3D.G||now-P3D.chk>400){P3D.chk=now;const k=p3dChave();if(k&&k!==P3D.gk){if(p3dMedir()){P3D.gk=k;const mk=k.split(',').slice(0,4).join(',')+'|'+p3dTerrs()+'|'+((B&&B.arena)||1);
@@ -1302,11 +1323,12 @@ function p3dQuadro(now,dt,bt){
   if(P3D.raio&&!RM&&P3D.hemi){if(now>P3D.raioT){P3D.raioT=now+5000+Math.random()*7000;P3D.flashT=now;}const k=(now-P3D.flashT)/1000;P3D.hemi.intensity=P3D.hemiI+(k<0.5?(k<0.08?1.4:k<0.16?0.2:k<0.24?1:Math.max(0,1-(k-0.24)*4)):0);}
   p3dPartQuadro(dt);p3dFxQuadro(dt);
   // sombra: celular atualiza o mapa a cada 2 quadros
-  const r=P3D.r;if(P3D.qual>=1&&(P3D.G.cel||P3D.soft)){P3D.sombraPar^=1;r.shadowMap.autoUpdate=false;if(P3D.sombraPar)r.shadowMap.needsUpdate=true;}else r.shadowMap.autoUpdate=true;
+  const r=P3D.r;
   p3dRender();
   // qualidade adaptativa: média dos últimos quadros
-  P3D.frames++;P3D.acc=(P3D.acc||0)+dt;
-  if(P3D.frames>=90){const media=P3D.acc/P3D.frames;P3D.frames=0;P3D.acc=0;P3D.fps=Math.round(1/media);
-    if(!window.__P3DQ&&media>0.034&&P3D.qual<2){P3D.qual++;r.setPixelRatio(p3dPR());r.setSize(P3D.G.W,P3D.G.H,false);p3dPosTam();}}
+  // (v11: compara com o ritmo pedido; 30 qps de propósito não conta como lento)
+  P3D.frames++;P3D.acc=(P3D.acc||0)+dt;P3D.alvoAcc=(P3D.alvoAcc||0)+p3dIntervalo(now)/1000;
+  if(P3D.frames>=90){const media=P3D.acc/P3D.frames,alvo=P3D.alvoAcc/P3D.frames;P3D.frames=0;P3D.acc=0;P3D.alvoAcc=0;P3D.fps=Math.round(1/media);
+    if(!window.__P3DQ&&media>alvo*1.45&&P3D.qual<2){P3D.qual++;r.setPixelRatio(p3dPR());r.setSize(P3D.G.W,P3D.G.H,false);p3dPosTam();}}
 }
 
