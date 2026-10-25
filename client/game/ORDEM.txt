@@ -15,8 +15,11 @@
 58-palco.js
 59-palco3d.js
 60-battle.js
+62-trilhas.js
+63-trilhas3d.js
 70-reveal.js
 80-ui.js
 84-ralos-ui.js
 85-online.js
+86-trilhas-ui.js
 90-boot.js
