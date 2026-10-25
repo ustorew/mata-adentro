@@ -175,7 +175,8 @@ async function triSair(){
   if(TRU.fim){triFechar();return;}
   TRU.pausa=true;
   const ok=await perguntar('Sair agora conta como derrota nesta partida de teste. Sair mesmo?','Sair',{perigo:true,titulo:'Sair da batalha?'});
-  if(ok){triFechar();return;}TRU.pausa=false;TRU.ultimo=0;
+  if(ok){try{s.trilhas=s.trilhas||{v:0,d:0,e:0};s.trilhas.d++;save();}catch(e){}triFechar();return;} // desistência conta como derrota (sem missão de treino)
+  TRU.pausa=false;TRU.ultimo=0;
 }
 function triSons(T,L){
   for(const v of L){
